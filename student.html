@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Dashboard</title>
+    
+</head>
+<body>
+    <style>
+        /* General Reset */
+body {
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+    background-color: #f9f9f9;
+    color: #333;
+    line-height: 1.6;
+    background-color: #cbf3ef;
+}
+
+/* Container */
+.container {
+    max-width: 1200px;
+    margin: 20px auto;
+    padding: 20px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Headings */
+h1 {
+    text-align: center;
+    color: #4CAF50;
+    margin-bottom: 20px;
+}
+
+h2 {
+    color: #333;
+    margin-bottom: 15px;
+}
+
+/* Sections */
+section {
+    margin-bottom: 30px;
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background-color: #fdfdfd;
+}
+
+/* Form Elements */
+form {
+    display: flex;
+    flex-direction: column;
+}
+
+input, textarea {
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 16px;
+    outline: none;
+}
+
+input:focus, textarea:focus {
+    border-color: #4CAF50;
+    box-shadow: 0 0 4px rgba(76, 175, 80, 0.2);
+}
+
+textarea {
+    resize: none;
+}
+
+/* Buttons */
+button {
+    padding: 10px 15px;
+    margin-top: 10px;
+    font-size: 16px;
+    color: #fff;
+    background-color: #4CAF50;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+button:hover {
+    background-color: #45a049;
+}
+
+button:active {
+    transform: scale(0.98);
+}
+
+/* Results Section */
+#teacherResults, #appointmentList, #messageList {
+    margin-top: 20px;
+    background: #f9f9f9;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+#teacherResults p, #appointmentList p, #messageList p {
+    margin: 10px 0;
+    padding: 10px;
+    background: #fff;
+    border-radius: 5px;
+    border: 1px solid #eee;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+#teacherResults p:hover, #appointmentList p:hover, #messageList p:hover {
+    background: #f0f9f0;
+    border-color: #4CAF50;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .container {
+        width: 90%;
+        padding: 15px;
+    }
+
+    h1 {
+        font-size: 24px;
+    }
+
+    h2 {
+        font-size: 20px;
+    }
+
+    input, textarea, button {
+        font-size: 14px;
+    }
+}
+
+    </style>
+    <div class="container">
+        <h1>Student Dashboard</h1>
+
+        <!-- Register Section -->
+        <section id="register">
+            <h2>Register</h2>
+            <form id="registerForm">
+                <input type="text" id="studentName" placeholder="Name" required>
+                <input type="email" id="studentEmail" placeholder="Email" required>
+                <input type="password" id="studentPassword" placeholder="Password" required>
+                <button type="submit">Register</button>
+            </form>
+        </section>
+
+        <!-- Login Section -->
+        <section id="login">
+            <h2>Login</h2>
+            <form id="loginForm">
+                <input type="email" id="loginEmail" placeholder="Email" required>
+                <input type="password" id="loginPassword" placeholder="Password" required>
+                <button type="submit">Login</button>
+            </form>
+        </section>
+
+        <!-- Search Teacher Section -->
+        <section id="searchTeacher">
+            <h2>Search Teacher</h2>
+            <input type="text" id="searchQuery" placeholder="Enter Teacher's Name or Subject">
+            <button onclick="searchTeachers()">Search</button>
+            <div id="teacherResults"></div>
+        </section>
+
+        <!-- Book Appointment Section -->
+        <section id="bookAppointment">
+            <h2>Book Appointment</h2>
+            <form id="appointmentForm">
+                <input type="text" id="appointmentTeacher" placeholder="Teacher ID" required>
+                <input type="date" id="appointmentDate" required>
+                <input type="time" id="appointmentTime" required>
+                <button type="submit">Book Appointment</button>
+            </form>
+        </section>
+
+        <!-- Send Message Section -->
+        <section id="sendMessage">
+            <h2>Send Message</h2>
+            <form id="messageForm">
+                <input type="text" id="messageTo" placeholder="Teacher ID" required>
+                <textarea id="messageContent" placeholder="Your Message" rows="4" required></textarea>
+                <button type="submit">Send Message</button>
+            </form>
+        </section>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-auth.js"></script>
+    <script>
+        // Firebase Configuration
+const firebaseConfig = {
+    apiKey: "your-api-key",
+    authDomain: "your-auth-domain",
+    projectId: "your-project-id",
+    storageBucket: "your-storage-bucket",
+    messagingSenderId: "your-sender-id",
+    appId: "your-app-id"
+};
+
+// Initialize Firebase
+const app = firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore(app);
+const auth = firebase.auth();
+
+// Register Student
+document.getElementById('registerForm').addEventListener('submit', registerStudent);
+
+function registerStudent(e) {
+    e.preventDefault();
+
+    const name = document.getElementById('studentName').value;
+    const email = document.getElementById('studentEmail').value;
+    const password = document.getElementById('studentPassword').value;
+
+    auth.createUserWithEmailAndPassword(email, password)
+        .then(userCredential => {
+            const userId = userCredential.user.uid;
+            return db.collection('students').doc(userId).set({
+                name: name,
+                email: email
+            });
+        })
+        .then(() => {
+            alert('Registration successful');
+            document.getElementById('registerForm').reset();
+        })
+        .catch(error => {
+            console.error('Error during registration:', error);
+        });
+}
+
+// Login Student
+document.getElementById('loginForm').addEventListener('submit', loginStudent);
+
+function loginStudent(e) {
+    e.preventDefault();
+
+    const email = document.getElementById('loginEmail').value;
+    const password = document.getElementById('loginPassword').value;
+
+    auth.signInWithEmailAndPassword(email, password)
+        .then(() => {
+            alert('Login successful');
+        })
+        .catch(error => {
+            console.error('Error during login:', error);
+        });
+}
+
+// Search Teachers
+function searchTeachers() {
+    const query = document.getElementById('searchQuery').value.toLowerCase();
+    const resultsDiv = document.getElementById('teacherResults');
+    resultsDiv.innerHTML = '';
+
+    db.collection('teachers')
+        .get()
+        .then(querySnapshot => {
+            querySnapshot.forEach(doc => {
+                const teacher = doc.data();
+                if (
+                    teacher.name.toLowerCase().includes(query) ||
+                    teacher.subject.toLowerCase().includes(query)
+                ) {
+                    resultsDiv.innerHTML += `<p>${teacher.name} - ${teacher.subject} (ID: ${doc.id})</p>`;
+                }
+            });
+        })
+        .catch(error => {
+            console.error('Error searching teachers:', error);
+        });
+}
+
+// Book Appointment
+document.getElementById('appointmentForm').addEventListener('submit', bookAppointment);
+
+function bookAppointment(e) {
+    e.preventDefault();
+
+    const teacherId = document.getElementById('appointmentTeacher').value;
+    const date = document.getElementById('appointmentDate').value;
+    const time = document.getElementById('appointmentTime').value;
+    const studentId = auth.currentUser ? auth.currentUser.uid : 'anonymous';
+
+    db.collection('appointments').add({
+        studentId: studentId,
+        teacherId: teacherId,
+        date: date,
+        time: time,
+        status: 'pending'
+    })
+    .then(() => {
+        alert('Appointment booked successfully');
+        document.getElementById('appointmentForm').reset();
+    })
+    .catch(error => {
+        console.error('Error booking appointment:', error);
+    });
+}
+
+// Send Message
+document.getElementById('messageForm').addEventListener('submit', sendMessage);
+
+function sendMessage(e) {
+    e.preventDefault();
+
+    const teacherId = document.getElementById('messageTo').value;
+    const content = document.getElementById('messageContent').value;
+    const studentId = auth.currentUser ? auth.currentUser.uid : 'anonymous';
+
+    db.collection('messages').add({
+        from: studentId,
+        to: teacherId,
+        content: content,
+        timestamp: new Date().toISOString()
+    })
+    .then(() => {
+        alert('Message sent successfully');
+        document.getElementById('messageForm').reset();
+    })
+    .catch(error => {
+        console.error('Error sending message:', error);
+    });
+}
+
+    </script>
+</body>
+</html>
+

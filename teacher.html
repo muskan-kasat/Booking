@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    
+</head>
+<body>
+    <style>
+        body {
+    font-family: Arial, sans-serif;
+    background-color: #cbf3ef;
+    margin: 0;
+    padding: 0;
+}
+
+.container {
+    width: 80%;
+    margin: 0 auto;
+    padding-top: 20px;
+}
+
+h1 {
+    text-align: center;
+    color: #333;
+}
+
+section {
+    background-color: #fff;
+    margin-bottom: 20px;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+input, textarea {
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+}
+
+button {
+    padding: 10px 20px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #45a049;
+}
+
+#appointmentList, #messageList {
+    margin-top: 10px;
+}
+
+    </style>
+    <div class="container">
+        <h1>Admin Dashboard</h1>
+        <h1>Login System</h1>
+
+        <!-- Login Form -->
+        <section id="loginSection">
+            <h2>Login</h2>
+            <form id="loginForm">
+                <input type="email" id="loginEmail" placeholder="Email" required>
+                <input type="password" id="loginPassword" placeholder="Password" required>
+                <button type="submit">Login</button>
+            </form>
+        </section>
+
+        <!-- Schedule Appointment Section -->
+        <section id="scheduleAppointment">
+            <h2>Schedule Appointment</h2>
+            <form id="scheduleAppointmentForm">
+                <input type="text" id="appointmentName" placeholder="Name" required>
+                <input type="date" id="appointmentDate" required>
+                <input type="time" id="appointmentTime" required>
+                <textarea id="appointmentDetails" placeholder="Details" rows="4"></textarea>
+                <button type="submit">Schedule Appointment</button>
+            </form>
+        </section>
+
+
+        <!-- Approve/Cancel Appointment Section -->
+        <section id="approveCancelAppointment">
+            <h2>Manage Appointments</h2>
+            <button onclick="fetchAppointments()">View Appointments</button>
+            <div id="appointmentList"></div>
+        </section>
+
+        <!-- View Messages Section -->
+        <section id="viewMessages">
+            <h2>Messages</h2>
+            <button onclick="fetchMessages()">View Messages</button>
+            <div id="messageList"></div>
+        </section>
+    
+   
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-firestore.js"></script>
+    <script>
+        // Firebase Configuration
+const firebaseConfig = {
+    apiKey: "your-api-key",
+    authDomain: "your-auth-domain",
+    projectId: "your-project-id",
+    storageBucket: "your-storage-bucket",
+    messagingSenderId: "your-sender-id",
+    appId: "your-app-id"
+};
+
+// Initialize Firebase
+const app = firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore(app);
+
+// Schedule Appointment
+document.getElementById('scheduleAppointmentForm').addEventListener('submit', scheduleAppointment);
+
+function scheduleAppointment(e) {
+    e.preventDefault();
+
+    const name = document.getElementById('appointmentName').value;
+    const date = document.getElementById('appointmentDate').value;
+    const time = document.getElementById('appointmentTime').value;
+    const details = document.getElementById('appointmentDetails').value;
+
+    db.collection('appointments').add({
+        name: name,
+        date: date,
+        time: time,
+        details: details,
+        status: 'pending'
+    })
+    .then(() => {
+        alert('Appointment scheduled successfully');
+        document.getElementById('scheduleAppointmentForm').reset();
+    })
+    .catch(error => {
+        console.error('Error scheduling appointment:', error);
+    });
+}
+
+// Fetch Appointments
+function fetchAppointments() {
+    const appointmentList = document.getElementById('appointmentList');
+    appointmentList.innerHTML = ''; // Clear list
+
+    db.collection('appointments').get()
+        .then(querySnapshot => {
+            querySnapshot.forEach(doc => {
+                const appointment = doc.data();
+                const appointmentItem = `
+                    <div>
+                        <p><strong>${appointment.name}</strong> (${appointment.date} at ${appointment.time})</p>
+                        <p>${appointment.details}</p>
+                        <button onclick="approveAppointment('${doc.id}')">Approve</button>
+                        <button onclick="cancelAppointment('${doc.id}')">Cancel</button>
+                    </div>
+                `;
+                appointmentList.innerHTML += appointmentItem;
+            });
+        })
+        .catch(error => {
+            console.error('Error fetching appointments:', error);
+        });
+}
+
+// Approve Appointment
+function approveAppointment(appointmentId) {
+    db.collection('appointments').doc(appointmentId).update({
+        status: 'approved'
+    })
+    .then(() => {
+        alert('Appointment approved');
+        fetchAppointments();
+    })
+    .catch(error => {
+        console.error('Error approving appointment:', error);
+    });
+}
+
+// Cancel Appointment
+function cancelAppointment(appointmentId) {
+    db.collection('appointments').doc(appointmentId).update({
+        status: 'canceled'
+    })
+    .then(() => {
+        alert('Appointment canceled');
+        fetchAppointments();
+    })
+    .catch(error => {
+        console.error('Error canceling appointment:', error);
+    });
+}
+
+// Fetch Messages
+function fetchMessages() {
+    const messageList = document.getElementById('messageList');
+    messageList.innerHTML = ''; // Clear list
+
+    db.collection('messages').get()
+        .then(querySnapshot => {
+            querySnapshot.forEach(doc => {
+                const message = doc.data();
+                const messageItem = `
+                    <div>
+                        <p><strong>${message.sender}</strong>: ${message.content}</p>
+                        <p><small>${message.timestamp}</small></p>
+                    </div>
+                `;
+                messageList.innerHTML += messageItem;
+            });
+        })
+        .catch(error => {
+            console.error('Error fetching messages:', error);
+        });
+}
+
+    </script>
+</body>
+</html>
